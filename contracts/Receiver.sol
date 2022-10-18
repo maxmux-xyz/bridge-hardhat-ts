@@ -5,23 +5,36 @@ import "hardhat/console.sol";
 contract Receiver {
     uint256 public counter;
     bool public synced;
+    address owner;
+
+    modifier onlyOwner {
+        require(msg.sender == owner, "Not owner of contract");
+        _;
+    }
 
     constructor() {
         console.log("Receiver -- Hello, World!");
         counter = 0;
-        synced = true;
+        synced = false;
+        owner = msg.sender;
     }
 
     function increment() external {
-        counter = counter + 1;
+        if (synced) {
+            counter = counter + 1;
+            synced = false;
+            console.log("New counter: ", counter);
+        } else {
+            console.log("Not synced");
+        }
     }
 
-    function get_count() external public view returns uint256 {
-        return count
+    function confirm_sync(uint256 bridgedCounter) external onlyOwner() {
+        if (bridgedCounter == counter) {
+            synced = true;
+            console.log("Contracts are synced! Can count again");
+        } else {
+            console.log("Contracts not synced.");
+        }
     }
-
-    function confirm_sync() external onlyOwner() {
-        synced = true;
-    }
-
 }
