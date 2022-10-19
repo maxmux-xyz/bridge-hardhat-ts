@@ -10,8 +10,10 @@
     "*.ts"
   ],
   "dependencies": {
+    "@openzeppelin/contracts": "^4.7.3",
     "ethers": "^5.7.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "web3": "^1.8.0"
   },
   "devDependencies": {
     "@ethersproject/abi": "^5.7.0",
