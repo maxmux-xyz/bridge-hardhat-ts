@@ -12,14 +12,13 @@ async function main() {
 
     const dest_chain_provider = new ethers.providers.JsonRpcProvider('http://localhost:8545');
     const dest_wallet = dest_chain_provider.getSigner(1);
-    const another_dest_wallet = dest_chain_provider.getSigner(2);
+    const another_dest_wallet = dest_chain_provider.getSigner(3);
 
     const Sender = await ethers.getContractFactory("Sender");
     const Receiver = await ethers.getContractFactory("Receiver");
 
     const sender = Sender.attach(SENDER_ADDRESS).connect(source_wallet);
     const receiver = Receiver.attach(RECEIVER_ADDRESS).connect(dest_wallet);
-
 
     let sender_current_count = await sender.counter();
     let receiver_current_count = await receiver.counter()
@@ -28,30 +27,41 @@ async function main() {
 
     expect(sender_current_count).to.equal(receiver_current_count);
 
-    await sender.confirm_sync(sender_current_count);
-    await receiver.confirm_sync(receiver_current_count)
+    let tx = await sender.start();
+    let receipt = await tx.wait();
 
-    await sender.start()
-    await receiver.increment()
+    // Getting nonce from Chain A
+    let chainANonce: number = -1;
+    if (receipt.events != undefined) {
+        for (var i = 0; i < receipt.events.length; i++) {
+            chainANonce = receipt.events[i].args?.nonce;
+        };
+    };
 
-    expect(await sender.synced()).to.equal(await receiver.synced());
+    if (chainANonce == -1) {
+        // Exit Script
+        console.log("chainANonce == -1");
+    };
+    console.log("chainANonce == %s", chainANonce);
 
-    sender_current_count = await sender.counter();
-    receiver_current_count = await receiver.counter()
+    // Incrementing contract on Chain B with nonce from ChainA
+    tx = await receiver.increment(chainANonce);
+    receipt = await tx.wait();
 
-    await expect(
-        sender
-            .connect(another_source_wallet)
-            .confirm_sync(sender_current_count)
-    ).to.be.revertedWith('Not owner of contract');
-    await expect(
-        receiver
-            .connect(another_dest_wallet)
-            .confirm_sync(receiver_current_count)
-    ).to.be.revertedWith('Not owner of contract');
+    // Getting nonce from Chain B
+    let chainBNonce: number = -1;
+    if (receipt.events != undefined) {
+        for (var i = 0; i < receipt.events.length; i++) {
+            chainBNonce = receipt.events[i].args?.nonce;
+        };
+    };
 
-    expect(await sender.synced()).to.equal(false);
-    expect(await sender.synced()).to.equal(await receiver.synced());
+    if (chainBNonce == -1) {
+        // Exit Script
+        console.log("chainBNonce == -1");
+    };
+    console.log("chainBNonce == %s", chainBNonce);
+    expect(chainANonce).to.equal(chainBNonce);
 }
 
 main().catch((error) => {

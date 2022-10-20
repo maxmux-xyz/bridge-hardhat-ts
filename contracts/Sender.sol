@@ -4,38 +4,32 @@ import "hardhat/console.sol";
 
 contract Sender {
     uint256 public counter;
-    bool public synced;
     address owner;
+    uint nonce;
+    mapping (uint=>bool) public processedNonces;
 
     modifier onlyOwner {
         require(msg.sender == owner, "Not owner of contract");
         _;
     }
 
+    event Increment(
+        uint date,
+        uint nonce
+    );
+
     constructor() {
         console.log("Sender -- Hello, World!");
         counter = 0;
-        synced = false;
+        nonce = 0;
         owner = msg.sender;
     }
 
-    function start() external {
-        if (synced == true) {
-            counter = counter + 1;
-            synced = false;
-            console.log("New counter: ", counter);
-        } else {
-            console.log("Not synced");
-        }
+    function start() external onlyOwner() {
+        counter = counter + 1;
+        console.log("Count + 1: %s", counter);
+        nonce = nonce + 1;
+        console.log("New nonce: %s", counter);
+        emit Increment(block.timestamp, nonce);
     }
-
-    function confirm_sync(uint256 bridgedCounter) external onlyOwner() {
-        if (bridgedCounter == counter) {
-            synced = true;
-            console.log("Contracts are synced! Can count again");
-        } else {
-            console.log("Contracts not synced.");
-        }
-    }
-
 }

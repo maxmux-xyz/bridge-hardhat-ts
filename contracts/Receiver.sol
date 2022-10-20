@@ -4,8 +4,13 @@ import "hardhat/console.sol";
 
 contract Receiver {
     uint256 public counter;
-    bool public synced;
     address owner;
+    mapping (uint=>bool) public processedNonces;
+
+    event Increment (
+        uint date,
+        uint nonce
+    );
 
     modifier onlyOwner {
         require(msg.sender == owner, "Not owner of contract");
@@ -15,26 +20,15 @@ contract Receiver {
     constructor() {
         console.log("Receiver -- Hello, World!");
         counter = 0;
-        synced = false;
         owner = msg.sender;
     }
 
-    function increment() external {
-        if (synced) {
-            counter = counter + 1;
-            synced = false;
-            console.log("New counter: ", counter);
-        } else {
-            console.log("Not synced");
-        }
-    }
-
-    function confirm_sync(uint256 bridgedCounter) external onlyOwner() {
-        if (bridgedCounter == counter) {
-            synced = true;
-            console.log("Contracts are synced! Can count again");
-        } else {
-            console.log("Contracts not synced.");
-        }
+    function increment(uint otherChainNonce) external onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        require(processedNonces[otherChainNonce] == false);
+        processedNonces[otherChainNonce] = true;
+        counter = counter + 1;
+        emit Increment(block.timestamp, otherChainNonce);
+        console.log("New nonce processed: %s", otherChainNonce);
     }
 }
